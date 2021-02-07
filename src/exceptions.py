@@ -1,0 +1,2 @@
+class BillingUpdateException(Exception):
+    pass

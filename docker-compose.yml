@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  db:
+    image: kartoza/postgis:13.0
+    environment:
+      - POSTGRES_DBNAME=ignitia
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASS=postgres
+    volumes:
+      - ./data:/var/tmp
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - ./sql/import_forecasts.sql:/docker-entrypoint-initdb.d/import_forecasts.sql
+      - ./sql/process_subscriptions.sql:/docker-entrypoint-initdb.d/process_subscriptions.sql
+  web:
+    env_file:
+      - web.dev.env
+    build: .
+    volumes:
+      - .:/code
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+  celery:
+    build: .
+    command: celery -A celery_tasks.celery worker -P eventlet -l INFO
+    env_file:
+      - web.dev.env
+    depends_on:
+      - web
+      - redis
+  redis:
+    image: redis:5-alpine
